@@ -1,0 +1,10 @@
+//#define   __LIBRARY__
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+int main()
+{
+	printf("%d\n",O_CREAT|O_TRUNC|O_RDWR);
+	return 0;
+}

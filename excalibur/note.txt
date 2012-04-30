@@ -1,0 +1,169 @@
+Inotify 可以监视的文件系统事件包括：
+
+IN_ACCESS，即文件被访问
+IN_MODIFY，文件被 write
+IN_ATTRIB，文件属性被修改，如 chmod、chown、touch 等
+IN_CLOSE_WRITE，可写文件被 close
+IN_CLOSE_NOWRITE，不可写文件被 close
+IN_OPEN，文件被 open
+IN_MOVED_FROM，文件被移走,如 mv
+IN_MOVED_TO，文件被移来，如 mv、cp
+IN_CREATE，创建新文件
+IN_DELETE，文件被删除，如 rm
+IN_DELETE_SELF，自删除，即一个可执行文件在执行时删除自己
+IN_MOVE_SELF，自移动，即一个可执行文件在执行时移动自己
+IN_UNMOUNT，宿主文件系统被 umount
+IN_CLOSE，文件被关闭，等同于(IN_CLOSE_WRITE | IN_CLOSE_NOWRITE)
+IN_MOVE，文件被移动，等同于(IN_MOVED_FROM | IN_MOVED_TO)
+
+
+
+popen() 函数通过创建一个管道，调用 fork 产生一个子进程，执行一个 shell 以运行命令来开启一个进程。这个进程必须由 pclose() 函数关闭，而不是 fclose() 函数。pclose() 函数关闭标准 I/O 流，等待命令执行结束，然后返回 shell 的终止状态。如果 shell 不能被执行，则 pclose() 返回的终止状态与 shell 已执行 exit 一样。
+
+if((fp=popen("/usr/bin/uptime","r"))==NULL);
+　　{
+　　sprintf(buf,"error: %s\n", strerror(errno));
+　　....//异常处理
+　　}
+　　else
+　　{
+　　....
+　　pclose(fp);
+　　}
+
+stream = popen( "ls -l", "r" ); //将“ls －l”命令的输出 通过管道读取（“r”参数）到FILE* stream
+　　wstream = fopen( "test_popen.txt", "w+"); //新建一个可写的文件
+　　fread( buf, sizeof(char), sizeof(buf), stream); //将刚刚FILE* stream的数据流读取到buf中
+　　fwrite( buf, 1, sizeof(buf), wstream );//将buf中的数据写到FILE    *wstream对应的流中，也是写到文件中
+　　pclose( stream );
+　　fclose( wstream );
+
+
+
+
+stat:
+#include <sys/stat.h>
+#include <unistd.h>
+
+说明: 通过文件名filename获取文件信息，并保存在buf所指的结构体stat中 返回值: 执行成功则返回0，失败返回-1，错误代码存于errno
+
+#include <sys/stat.h> 
+#include <unistd.h> 
+#include <stdio.h> 
+int main() 
+{
+ struct stat buf;
+ stat("/etc/hosts", &buf);
+ printf("/etc/hosts file size = %d\n", buf.st_size); 
+}
+
+struct stat {
+ mode_t st_mode; //文件对应的模式，文件，目录等 
+ino_t st_ino; //inode节点号 
+dev_t st_dev; //设备号码 
+dev_t st_rdev; //特殊设备号码 
+nlink_t st_nlink; //文件的连接数 
+uid_t st_uid; //文件所有者 
+gid_t st_gid; //文件所有者对应的组 
+off_t st_size; //普通文件，对应的文件字节数 
+time_t st_atime; //文件最后被访问的时间 
+time_t st_mtime; //文件内容最后被修改的时间 
+time_t st_ctime; //文件状态改变时间 
+blksize_t st_blksize; //文件内容对应的块大小 
+blkcnt_t st_blocks; //伟建内容对应的块数量
+ }; 
+
+
+
+
+proc文件系统目录解析
+
+/proc 是一个伪文件系统, 被用作内核数据结构的接口, 而不仅仅是解释说明 /dev/kmem. /proc里的大多数文件都是只读的, 但也可以通过写一些文件来改变内核变量.
+
+下面对整个 /proc 目录作一个大略的介绍.
+
+[number]
+
+在 /proc 目录里, 每个正在运行的进程都有一个以该进程 ID 命名的子目录, 其下包括如下的目录和伪文件.
+
+[number] /cmdline
+
+该文件保存了进程的完整命令行. 如果该进程已经被交换出内存, 或者该进程已经僵死, 那么就没有任何东西在该文件里, 这时候对该文件的读操作将返回零个字符. 该文件以空字符 null 而不是换行符作为结束标志.
+
+[number] /cwd
+
+一个符号连接, 指向进程当前的工作目录. 例如, 要找出进程 20 的 cwd, 你可以:
+
+cd /proc/20/cwd; /bin/pwd
+
+请注意 pwd 命令通常是 shell 内置的, 在这样的情况下可能工作得不是很好(casper 注： pwd 只能显示 /proc/20/cwd， 要是想知道它的工作目录，直接ls -al /proc/20不就好了）.
+
+[number] /environ
+
+该文件保存进程的环境变量, 各项之间以空字符分隔, 结尾也可能是一个空字符. 因此, 如果要输出进程 1 的环境变量, 你应该:
+
+(cat /proc/1/environ; echo) | tr ";\000"; ";\n";
+
+(至于为什么想要这么做, 请参阅 lilo(8).)
+
+[number] /exe
+
+也是一个符号连接, 指向被执行的二进制代码. 在 Linux 2.0 或者更早的版本下, 对 exe 特殊文件的 readlink(2) 返回一个如下格式的字符串: [设备号]:节点号 举个例子, [0301]:1502 就是某设备的 1502 节点, 该设备的主设备号为 03 (如 IDE, MFM 等驱动器), 从设备号为 01 (第一个驱动器的第一分区). 而在 Linux 2.2 下, readlink(2) 则给出命令的实际路径名. 另外, 该符号连接也可以正常析引用(试图打开 exe 文件实际上将打开一个可执行文件). 你甚至可以键入 /proc/[number]/exe 来运行 [number] 进程的副本. 带 -inum 选项的 find(1) 命令可以定位该文件.
+
+[number] /fd
+
+进程所打开的每个文件都有一个符号连接在该子目录里, 以文件描述符命名, 这个名字实际上是指向真正的文件的符号连接，（和 exe 记录一样）．例如, 0 是标准输入, 1 是标准输出, 2 是标准错误, 等等. 程序有时可能想要读取一个文件却不想要标准输入，或者想写到一个文件却不想将输出送到标准输出去，那么就可以很有效地用如下的办法骗过(假定 -i 是输入文件的标志, 而 -o 是输出文件的标志):
+
+foobar -i /proc/self/fd/0 -o /proc/self/fd/1 ...
+
+这样就是一个能运转的过滤器. 请注意该方法不能用来在文件里搜索, 这是因为 fd 目录里的文件是不可搜索的. 在 UNIX 类的系统下, /proc/self/fd/N 基本上就与 /dev/fd/N 相同. 实际上, 大多数的 Linux MAKEDEV 脚本都将 /dev/fd 符号连接到 [..]/proc/self/fd 上.
+
+[number] /maps
+
+该文件包含当前的映象内存区及他们的访问许可. 格式如下:
+
+address perms offset dev inode
+
+00000000-0002f000 r-x-- 00000400 03:03 1401
+
+0002f000-00032000 rwx-p 0002f400 03:03 1401
+
+00032000-0005b000 rwx-p 00000000 00:00 0
+
+60000000-60098000 rwx-p 00000400 03:03 215
+
+60098000-600c7000 rwx-p 00000000 00:00 0
+
+bfffa000-c0000000 rwx-p 00000000 00:00 0
+
+address 是进程所占据的地址空间, perms 是权限集:
+
+r = read
+
+w = write
+
+x = execute
+
+s = shared
+
+p = private (copy on write)
+
+offset 是文件或者别的什么的偏移量, dev 是设备号(主设备号:从设备号), 而 inode 则是设备的节点号. 0 表明没有节点与内存相对应, 就象 bss 的情形.
+
+在 Linux 2.2 下还增加了一个域给可用的路径名.
+
+mem
+
+该文件并不是 mem (1:1) 设备, 尽管它们有相同的设备号. /dev/mem 设备是做任何地址转换之前的物理内存, 而这里的 mem 文件是访问它的进程的内存.目前这个 mem 还不能 mmap(2) （内存映射）出去，而且可能一直要等到内核中增加了一个通用的 mmap(2) 以后才能实现． (也许在你读本手册页时这一切已经发生了)
+
+mmap
+
+mmap(2) 做的 maps 映射目录，是和 exe, fd/* 等类似的符号连接. 请注意 maps 包含了比 /proc/*/mmap 更多的信息, 所以应该废弃 mmap. ";0"; 通常指 libc.so.4. 在 linux 内核 1.1.40 里, /proc/*/mmap 被取消了. (现在是真的 废弃不用了!)
+
+root
+
+依靠系统调用 chroot(2), unix 和 linux 可以让每个进程有各自的文件系统根目录. 由 chroot(2) 系统调用设置．根指向文件系统的根，性质就象 exe, fd/* 等一样
+
+
+
+
