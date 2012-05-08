@@ -1,0 +1,14 @@
+/home/heaven/excalibur/test/testin.txt open 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:02 Tuesday
+/home/heaven/excalibur/test/001.txt write 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:02 Tuesday
+/home/heaven/excalibur/test/001.txt open 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:02 Tuesday
+/home/heaven/excalibur/test/testin.txt read 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:02 Tuesday
+/home/heaven/excalibur/test/testin.txt close 0 system 2012/05/08 21:41:17 Tuesday
+/home/heaven/excalibur/test/001.txt close 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:17 Tuesday
+/home/heaven/excalibur/test/001.txt open 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:17 Tuesday
+/home/heaven/excalibur/test/002.txt create 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:17 Tuesday
+/home/heaven/excalibur/test/002.txt open 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:17 Tuesday
+/home/heaven/excalibur/test/001.txt read 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:17 Tuesday
+/home/heaven/excalibur/test/002.txt write 1 /home/heaven/excalibur/stdtest 2012/05/08 21:41:17 Tuesday
+/home/heaven/excalibur/test/001.txt close 0 system 2012/05/08 21:41:32 Tuesday
+/home/heaven/excalibur/test/002.txt close 0 system 2012/05/08 21:41:32 Tuesday
+/home/heaven/excalibur/test/002.txt delete 0 system 2012/05/08 21:41:32 Tuesday

@@ -1,0 +1,10 @@
+import wx
+fm=wx.App()
+face=wx.Frame(None,title="File_Monitor",size=(800,600))
+bkg=wx.Panel(face)
+refreshbutton=wx.Button(bkg,label='Refresh')
+hbox=wx.BoxSizer()
+hbox.Add(refreshbutton,proportion=1,flag=wx.EXPAND)
+bkg.SetSizer(hbox)
+face.Show()
+fm.MainLoop()

@@ -1,0 +1,47 @@
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+using namespace std;
+int main()
+{
+	ifstream fin("./test/testin.txt");
+	sleep(1);
+	ofstream fout("./test/001.txt");
+	sleep(1);
+	string abc;
+	int n;
+	n=5;
+	while(n--)
+	{
+		while(fin>>abc)
+		{
+			sleep(1);
+			fout<<abc<<endl;
+			sleep(1);
+		}
+	}
+	fin.close();
+	sleep(1);
+	fout.close();
+	sleep(1);
+	ifstream finn("./test/001.txt");
+	sleep(1);
+	ofstream foutt("./test/002.txt");
+	sleep(1);
+	n=5;
+	while(n--)
+	{
+		while(finn>>abc)
+		{
+			sleep(1);
+			foutt<<abc<<endl;
+			sleep(1);
+		}
+	}
+	finn.close();
+	sleep(1);
+	foutt.close();
+	sleep(1);
+	system("rm /home/heaven/excalibur/test/002.txt");
+	return 0;
+}

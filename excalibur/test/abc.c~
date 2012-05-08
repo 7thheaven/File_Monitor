@@ -2,9 +2,49 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <time.h>
+#include "dir.h"
+/*
+int findfirst(char *pathname,struct ffblk *ffblk,int attrib)查找指定的文件,成功
+     返回0
+     pathname为指定的目录名和文件名,如"C:\\WPS\\TXT"
+     ffblk为指定的保存文件信息的一个结构,定义如下:
+    ┏━━━━━━━━━━━━━━━━━━┓
+    ┃struct ffblk                        ┃
+    ┃{                                   ┃
+    ┃ char ff_reserved[21];   //DOS保留字┃
+    ┃ char ff_attrib;         //文件属性 ┃
+    ┃ int  ff_ftime;          //文件时间 ┃
+    ┃ int  ff_fdate;          //文件日期 ┃
+    ┃ long ff_fsize;          //文件长度 ┃
+    ┃ char ff_name[13];       //文件名   ┃
+    ┃}                                   ┃
+    ┗━━━━━━━━━━━━━━━━━━┛
+     attrib为文件属性,由以下字符代表
+    ┏━━━━━━━━━┳━━━━━━━━┓
+    ┃FA_RDONLY 只读文件┃FA_LABEL  卷标号┃
+    ┃FA_HIDDEN 隐藏文件┃FA_DIREC  目录  ┃
+    ┃FA_SYSTEM 系统文件┃FA_ARCH   档案  ┃
+    ┗━━━━━━━━━┻━━━━━━━━┛
+*/
+size_t findFunc(void)
+{
+	struct ffblk ff;
+	int flag=0;
+	int attrib=FA_DIREC;
+	size_t ct=0;
+	flag=findfirst("/home/heaven/excalibur/test",&ff,attrib);//返回0成功,-1失败
+	while(flag==0){
+		ct++;
+		printf("%s\n",ff.ff_name);//你的处理函数
+		flag=findnext(&ff);//返回0成功,-1失败
+	}
+	return ct;
+} 
 
 int main()
 {
-	printf("%d\n",O_CREAT|O_TRUNC|O_RDWR);
+	findFunc();
 	return 0;
 }
+
