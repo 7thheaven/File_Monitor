@@ -16,6 +16,14 @@ IN_UNMOUNT，宿主文件系统被 umount
 IN_CLOSE，文件被关闭，等同于(IN_CLOSE_WRITE | IN_CLOSE_NOWRITE)
 IN_MOVE，文件被移动，等同于(IN_MOVED_FROM | IN_MOVED_TO)
 
+struct inotify_event {
+        __s32           wd;             /* watch descriptor */
+        __u32           mask;           /* watch mask */
+        __u32           cookie;         /* cookie to synchronize two events */
+        __u32           len;            /* length (including nulls) of name */
+        char            name[0];        /* stub for possible name */
+};
+
 
 
 popen() 函数通过创建一个管道，调用 fork 产生一个子进程，执行一个 shell 以运行命令来开启一个进程。这个进程必须由 pclose() 函数关闭，而不是 fclose() 函数。pclose() 函数关闭标准 I/O 流，等待命令执行结束，然后返回 shell 的终止状态。如果 shell 不能被执行，则 pclose() 返回的终止状态与 shell 已执行 exit 一样。

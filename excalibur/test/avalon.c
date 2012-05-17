@@ -58,6 +58,7 @@ void showpro(char * temp)
 int main(int argc, char *argv[])
 {
 	freopen("/home/heaven/log.txt","w",stdout);
+	printf("%d\n",getpid());
 	int inofd,inowd,inolen,inoindex;
 	char buffer[1024],temp[128];
 	struct inotify_event *inoevent;
@@ -66,13 +67,13 @@ int main(int argc, char *argv[])
 	inofd = inotify_init();
 	if(inofd < 0)
 	{
-		printf("Failed to initialize inotify.\n");
+		printf("Error : Failed to initialize inotify.\n");
 		return -1;
 	}
 	inowd = inotify_add_watch(inofd,path,IN_CLOSE | IN_CREATE | IN_MODIFY | IN_OPEN | IN_DELETE | IN_MOVE | IN_ACCESS);
 	if(inowd < 0)
 	{
-		printf("Can't add watch for %s", path);
+		printf("Error : Can't add watch for %s", path);
 		return -1;
 	}
 	while(inolen = read(inofd, buffer, MAX_BUF_SIZE))

@@ -1,0 +1,2 @@
+import subprocess
+p = subprocess.Popen(["g++", "-o","%s"%subid,"%s.cpp"%subid,"-O2"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
