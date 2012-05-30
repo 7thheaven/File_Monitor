@@ -57,8 +57,11 @@ void showpro(char * temp)
 
 int main(int argc, char *argv[])
 {
+	printf("%d\n",getpid());
+	fflush(stdout);
 	freopen("/home/heaven/log.txt","w",stdout);
 	printf("%d\n",getpid());
+	fflush(stdout);
 	int inofd,inowd,inolen,inoindex;
 	char buffer[1024],temp[128];
 	struct inotify_event *inoevent;

@@ -266,5 +266,26 @@ if __name__ == "__main__":
     frame = MyFrame()
     app.MainLoop()
 
+文件浏览器：FileDialog & DirDialog
 
+dlg = wx.DirDialog(self, u"请选择影片所在目录",
+                          style=wx.DD_DEFAULT_STYLE
+                           | wx.DD_DIR_MUST_EXIST
+                           )
+        if dlg.ShowModal() == wx.ID_OK:
+            ml = movielist.Mlist(u'templist.xml')
+            if sys.getfilesystemencoding() != u'UTF-8':
+                #wxpython默认在vim下面无法正常得到有效unicode编码,
+                #为方便调试,需要进行转换
+                tmppath=repr(dlg.GetPath())[1:]
+                exec 'tmppath='+ tmppath
+                path=tmppath.decode('utf-8')
+            else:
+                path=dlg.GetPath()
+
+            ml.makebaselist(path)
+            ml.savefile(u'templist.xml')
+            self.gridnew.GetTable().ReloadData(u'templist.xml')
+            self.gridnew.AutoSizeColumns()
+        dlg.Destroy()
 

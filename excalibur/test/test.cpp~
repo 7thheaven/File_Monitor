@@ -5,10 +5,11 @@ using namespace std;
 int main()
 {
 	char abc;
-	int i,j=1;
+	int i,j=1,n;
 	freopen("testin.txt","r",stdin);
 	freopen("testout.txt","w",stdout);
-	while(1)
+	n=5;
+	while(n--)
 	{
 	while((abc=getchar())!=EOF)
 	cout<<abc;

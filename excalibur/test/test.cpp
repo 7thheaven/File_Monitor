@@ -6,8 +6,8 @@ int main()
 {
 	char abc;
 	int i,j=1,n;
-	freopen("testin.txt","r",stdin);
-	freopen("testout.txt","w",stdout);
+	freopen("/home/heaven/excalibur/test/testin.txt","r",stdin);
+	freopen("/home/heaven/excalibur/test/testout.txt","w",stdout);
 	n=5;
 	while(n--)
 	{
