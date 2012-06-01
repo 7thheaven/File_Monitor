@@ -2,7 +2,12 @@
 #include <unistd.h>
 #include <sys/inotify.h>
 #include <time.h>
+#include <dirent.h>
+#include <string.h>
 #define MAX_BUF_SIZE 1024
+
+int inofd,inolen,inoindex,inonum=0,inowd[1024];
+char inopath[1024][128];
 
 void showtime()
 {
@@ -55,27 +60,81 @@ void showpro(char * temp)
 	}
 }
 
+int getmywd(int a)
+{
+	int i;
+	for(i=0;i<inonum;++i)
+		if(inowd[i]==a)
+			return i;
+	return -1;
+}
+
+void recursivewatch(char * dir)
+{
+	struct dirent *dent;
+	DIR *odir;
+	if((odir=opendir(dir))==NULL)
+        {
+                printf("Error:fail to open %s\n",dir);
+                return;
+        }
+	//printf("%s\n",dir);
+	inowd[inonum++]=inotify_add_watch(inofd,dir,IN_CLOSE | IN_CREATE | IN_MODIFY | IN_OPEN | IN_DELETE | IN_MOVE | IN_ACCESS);
+	sprintf(inopath[inonum-1],"%s",dir);
+	if(inowd[inonum-1] < 0)
+	{
+		printf("Error : Can't add watch for %s",dir);
+		return;
+	}
+        while((dent=readdir(odir))!=NULL)
+        {
+                if(strcmp(dent->d_name,".")==0||strcmp(dent->d_name,"..")==0)
+                        continue;
+                if(dent->d_type==DT_DIR)
+                {
+			if(dent->d_name[0]=='.')
+				continue;
+			//printf("%s\n",dent->d_name);
+                        sprintf(inopath[inonum],"%s%s/",dir,dent->d_name);
+			recursivewatch(inopath[inonum]);
+                }
+        }
+}
+
+
 int main(int argc, char *argv[])
 {
+	printf("%d\n",getpid());
+	fflush(stdout);
 	freopen("/home/heaven/log.txt","w",stdout);
 	printf("%d\n",getpid());
 	fflush(stdout);
-	int inofd,inowd,inolen,inoindex;
 	char buffer[1024],temp[128];
+	int myindex=-1;
 	struct inotify_event *inoevent;
 	//char *path="/home/heaven/excalibur/test/";
 	char *path=argv[1];
+	char *res=argv[2];
 	inofd = inotify_init();
 	if(inofd < 0)
 	{
 		printf("Error : Failed to initialize inotify.\n");
 		return -1;
 	}
-	inowd = inotify_add_watch(inofd,path,IN_CLOSE | IN_CREATE | IN_MODIFY | IN_OPEN | IN_DELETE | IN_MOVE | IN_ACCESS);
-	if(inowd < 0)
+	inonum=0;
+	if(res[0]=='0')
 	{
-		printf("Error : Can't add watch for %s", path);
-		return -1;
+		inowd[inonum++]=inotify_add_watch(inofd,path,IN_CLOSE | IN_CREATE | IN_MODIFY | IN_OPEN | IN_DELETE | IN_MOVE | IN_ACCESS);
+		sprintf(inopath[0],"%s",path);
+		if(inowd[0] < 0)
+		{
+			printf("Error : Can't add watch for %s", path);
+			return -1;
+		}
+	}
+	if(res[0]=='1')
+	{
+		recursivewatch(path);
 	}
 	while(inolen = read(inofd, buffer, MAX_BUF_SIZE))
 	{
@@ -83,60 +142,61 @@ int main(int argc, char *argv[])
 		while(inoindex < inolen)
 		{
 			inoevent = (struct inotify_event *)(buffer+inoindex);
-			if(inoevent->wd != inowd)
+			myindex=getmywd(inoevent->wd);
+			if(myindex==-1)
 				continue;
 			if(inoevent -> mask & IN_CREATE)
 			{
-				printf("%s%s create ",path,inoevent -> name);
-				sprintf(temp,"fuser %s/%s",path,inoevent ->name);
+				printf("%s%s create ",inopath[myindex],inoevent -> name);
+				sprintf(temp,"fuser %s/%s",inopath[myindex],inoevent ->name);
 				showpro(temp);
 				showtime();
 				fflush(stdout);
 			}
 			if(inoevent -> mask & IN_OPEN)
 			{
-				printf("%s%s open ",path,inoevent -> name);
-				sprintf(temp,"fuser %s/%s",path,inoevent ->name);
+				printf("%s%s open ",inopath[myindex],inoevent -> name);
+				sprintf(temp,"fuser %s/%s",inopath[myindex],inoevent ->name);
 				showpro(temp);
 				showtime();
 				fflush(stdout);
 			}
 			if(inoevent -> mask & IN_ACCESS)
 			{
-				printf("%s%s read ",path,inoevent -> name);
-				sprintf(temp,"fuser %s/%s",path,inoevent ->name);
+				printf("%s%s read ",inopath[myindex],inoevent -> name);
+				sprintf(temp,"fuser %s/%s",inopath[myindex],inoevent ->name);
 				showpro(temp);
 				showtime();
 				fflush(stdout);
 			}
 			if(inoevent -> mask & IN_MODIFY)
 			{
-				printf("%s%s write ",path,inoevent -> name);
-				sprintf(temp,"fuser %s/%s",path,inoevent ->name);
+				printf("%s%s write ",inopath[myindex],inoevent -> name);
+				sprintf(temp,"fuser %s/%s",inopath[myindex],inoevent ->name);
 				showpro(temp);
 				showtime();
 				fflush(stdout);
 			}
 			if(inoevent -> mask & IN_DELETE)
 			{
-				printf("%s%s delete ",path,inoevent -> name);
-				sprintf(temp,"fuser %s/%s",path,inoevent ->name);
+				printf("%s%s delete ",inopath[myindex],inoevent -> name);
+				sprintf(temp,"fuser %s/%s",inopath[myindex],inoevent ->name);
 				showpro(temp);
 				showtime();
 				fflush(stdout);
 			}
 			if(inoevent -> mask & IN_MOVE)
 			{
-				printf("%s%s move ",path,inoevent -> name);
-				sprintf(temp,"fuser %s/%s",path,inoevent ->name);
+				printf("%s%s move ",inopath[myindex],inoevent -> name);
+				sprintf(temp,"fuser %s/%s",inopath[myindex],inoevent ->name);
 				showpro(temp);
 				showtime();
 				fflush(stdout);
 			}
 			if(inoevent -> mask & IN_CLOSE)
 			{
-				printf("%s%s close ",path,inoevent -> name);
-				sprintf(temp,"fuser %s/%s",path,inoevent ->name);
+				printf("%s%s close ",inopath[myindex],inoevent -> name);
+				sprintf(temp,"fuser %s/%s",inopath[myindex],inoevent ->name);
 				showpro(temp);
 				showtime();
 				fflush(stdout);

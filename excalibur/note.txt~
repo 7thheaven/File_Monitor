@@ -266,7 +266,7 @@ if __name__ == "__main__":
     frame = MyFrame()
     app.MainLoop()
 
-文件浏览器：
+文件浏览器：FileDialog & DirDialog
 
 dlg = wx.DirDialog(self, u"请选择影片所在目录",
                           style=wx.DD_DEFAULT_STYLE

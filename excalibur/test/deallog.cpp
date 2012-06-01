@@ -8,8 +8,8 @@ int main()
 	int i,j,test;
 	map<string,int> log;
 	string abc;
-	freopen("/home/heaven/log.txt","r",stdin);
-	freopen("/home/heaven/stdlog.txt","w",stdout);
+	freopen("/home/log.txt","r",stdin);
+	freopen("/home/stdlog.txt","w",stdout);
 	while(getline(cin,abc))
 	{
 		if(abc=="")

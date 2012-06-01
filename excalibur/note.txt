@@ -289,3 +289,249 @@ dlg = wx.DirDialog(self, u"请选择影片所在目录",
             self.gridnew.AutoSizeColumns()
         dlg.Destroy()
 
+
+这个我们期末考试考过。
+inotify只能监控单层目录变化，不能监控子目录中的变化情况。
+如果需要监控子目录，需要在调用inotify_add_watch(int fd, char *dir, int mask):int建立监控时，递归建立子目录的监控，伪代码如下
+void addwatch(int fd, char *dir, int mask)
+{
+    wd = inotify_add_watch(fd, dir, mask);
+    向目录集合加入(wd, dir);
+    for (dir下所有的子目录subdir）
+        addwatch(fd, subdir, mask);
+}
+这样就可以得到一个目录集合，其中每一个wd对应一个子目录。
+当你调用read获取信息时，可以得到一个下面的结构体
+struct inotify_event
+{
+  int wd;               /* Watch descriptor.  */
+  uint32_t mask;        /* Watch mask.  */
+  uint32_t cookie;      /* Cookie to synchronize two events.  */
+  uint32_t len;         /* Length (including NULs) of name.  */
+  char name __flexarr;  /* Name.  */
+};
+其中，通过event->wd和刚才记录的目录集合可以知道变动的具体子目录。
+event->name为具体的文件名称。
+event->name是一个char name[0]形式的桩指针，具体的name占据的长度可以由event->len得出
+
+我的监控部分代码如下：
+enum {EVENT_SIZE = sizeof(struct inotify_event)};
+enum {BUF_SIZE = (EVENT_SIZE + 16) << 10};
+void watch_mon(int fd)
+{
+        int i, length;
+        void *buf;
+        struct inotify_event *event;
+        buf = malloc(BUF_SIZE);
+
+        while ((length = read(fd, buf, BUF_SIZE)) >= 0)
+        {
+                i = 0;
+                while (i < length)
+                {
+                        event = buf + i;
+                        if (event->len)
+                                具体处理函数(event);
+                        i += EVENT_SIZE + event->len;
+                }
+        }
+        close(fd);
+        exit(1);
+}
+在你的具体处理函数中，通过wd辨识子目录，通过name辨识文件 
+
+这是利用C++STLmap写的一个范例，可以监视当前目录下（含子目录）的变化，创建，删除过程（新建立的目录不能监视，只能通过监视到创建新目录的事件后重新初始化监视表）
+新版1.1.0，可以监视创建的子目录，方法是，当do_action探测到新目录创建的动作时，调用inotify_add_watch追加新的监视
+/*
+    Copyright (C) 2010-2011 LIU An (SuperHacker@china.com.cn)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/inotify.h>
+#include <errno.h>
+#include <dirent.h>
+
+#include <map>
+#include <string>
+using namespace std;
+
+void addwatch(int, char*, int);
+static int filter_action(uint32_t mask);
+int watch_init(int mask, char *root);
+void addwatch(int fd, char *dir, int mask);
+static void do_action(int fd, struct inotify_event *event);
+void watch_mon(int fd);
+static void send_mess(char *name, char *act, int ewd);
+void append_dir(int fd, struct inotify_event *event, int mask);
+
+map<int, string> dirset;
+
+enum{MASK = IN_MODIFY | IN_CREATE | IN_DELETE};
+
+int main(int argc, char **argv)
+{
+        int fd;
+        if (argc != 2)
+        {
+                fprintf(stderr, "Usage: %s dir\n", argv[0]);
+                exit(1);
+        }
+
+        fd = watch_init(MASK, argv[1]);
+        watch_mon(fd);
+
+        return 0;
+}
+
+int watch_init(int mask, char *root)
+{
+        int i, fd;
+
+        if ((fd = inotify_init()) < 0)
+                perror("inotify_init");
+        addwatch(fd, root, mask);
+        return fd;
+}
+
+void addwatch(int fd, char *dir, int mask)
+{
+        int wd;
+        char subdir[512];
+        DIR *odir;
+        struct dirent *dent;
+
+        if ((odir = opendir(dir)) == NULL)
+        {
+                perror("fail to open root dir");
+                exit(1);
+        }
+        wd = inotify_add_watch(fd, dir, mask);
+        dirset.insert(make_pair(wd, string(dir)));
+
+        errno = 0;
+        while ((dent = readdir(odir)) != NULL)
+        {
+                if (strcmp(dent->d_name, ".") == 0
+                        || strcmp(dent->d_name, "..") == 0)
+                        continue;
+                if (dent->d_type == DT_DIR)
+                {
+                        sprintf(subdir, "%s/%s", dir, dent->d_name);
+                        addwatch(fd, subdir, mask);
+                }
+        }
+
+        if (errno != 0)
+        {
+                perror("fail to read dir");
+                exit(1);
+        }
+
+        closedir (odir);
+}
+
+enum {EVENT_SIZE = sizeof(struct inotify_event)};
+enum {BUF_SIZE = (EVENT_SIZE + 16) << 10};
+
+void watch_mon(int fd)
+{
+        int i, length;
+        void *buf;
+        struct inotify_event *event;
+        buf = malloc(BUF_SIZE);
+
+        while ((length = read(fd, buf, BUF_SIZE)) >= 0)
+        {
+                i = 0;
+                while (i < length)
+                {
+                        event = (struct inotify_event*)(buf + i);
+                        if (event->len)
+                                do_action(fd, event);
+                        i += EVENT_SIZE + event->len;
+                }
+        }
+        close(fd);
+        exit(1);
+}
+
+static char action[][10] =
+{
+        "modified",
+        "accessed",
+        "created",
+        "removed"
+};
+
+enum{NEWDIR = IN_CREATE | IN_ISDIR};
+
+static void do_action(int fd, struct inotify_event *event)
+{
+        int ia, i;
+
+        if ((ia = filter_action(event->mask)) < 0)
+                return;
+
+        if ((event->mask & NEWDIR) == NEWDIR)
+                append_dir(fd, event, MASK);
+
+        send_mess(event->name, action[ia], event->wd);
+}
+
+void append_dir(int fd, struct inotify_event *event, int mask)
+{
+        char ndir[512];
+        int wd;
+
+        sprintf(ndir, "%s/%s", dirset.find(event->wd)->second.c_str(),
+                        event->name);
+        wd = inotify_add_watch(fd, ndir, mask);
+        dirset.insert(make_pair(wd, string(ndir)));
+}
+
+static int filter_action(uint32_t mask)
+{
+        if (mask & IN_MODIFY)
+                return 0;
+        if (mask & IN_ACCESS)
+                return 1;
+        if (mask & IN_CREATE)
+                return 2;
+        if (mask & IN_DELETE)
+                return 3;
+        return -1;
+}
+
+static void send_mess(char *name, char *act, int ewd)
+{
+        char format[] = "%s was %s.\n";
+        char file[512];
+
+        sprintf(file, "%s/%s", dirset.find(ewd)->second.c_str(), name);
+
+        printf(format, file, act);
+}
+
+参考资料是我们作业的提交，没有考虑递归创建子目录监控的问题。
+
+
+
+
